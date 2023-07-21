@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.103.0.min.js"></script>
+    <title>会议摘要生成器</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .upload-section {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .upload-section input[type="file"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .upload-section button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .summary-section {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 4px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>会议摘要生成器</h1>
+        <div class="upload-section">
+            <input type="file" id="fileUpload" />
+            <button onclick="uploadFile()">上传文件</button>
+        </div>
+        <div class="summary-section">
+            <h2>会议摘要:</h2>
+            <div id="summary"></div>
+        </div>
+    </div>
+
+    <!-- 模态框 -->
+    <div id="loadingModal" class="modal">
+        <div class="modal-content">
+            <h3>正在处理中，请稍候...</h3>
+        </div>
+    </div>
+
+<!--    <h2>调用AWS Lambda</h2>-->
+
+<!--    <button type="button" onclick="callLambda()">调用</button>-->
+<!--    <div class="summary-section">-->
+<!--            <h2>会议摘要:</h2>-->
+<!--            <div id="summary_lambda"></div>-->
+<!--        </div>-->
+
+    <script>
+        function showLoadingModal() {
+            document.getElementById('loadingModal').style.display = 'block';
+        }
+
+        function hideLoadingModal() {
+            document.getElementById('loadingModal').style.display = 'none';
+        }
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileUpload');
+            const file = fileInput.files[0];
+            var fr = new FileReader();
+            fr.readAsDataURL(file); //读取文件内容，读取完成,result属性中将包含一个data: URL格式的字符串以表示所读取文件的内容。
+            // fr.readAsBinaryString(file) 读取文件内容，读取完成，result属性中将包含所读取文件的原始二进制数据。
+            // fr.readAsText(file) 读取文件内容,读取完成,result属性中将包含一个字符串以表示所读取的文件内容。
+            // fr.readAsArrayBuffer(file) 读取文件内容,读取完成,result 属性中保存的将是被读取文件的 ArrayBuffer 数据对象.
+            fr.onload = function(){ //文件读取成功回调
+               var local_file_str = fr.result;  //result属性为data:URL格式,与读取方式有关
+               console.log('local_file_str.split:', local_file_str.split('base64,'));
+<!--               local_file_str = local_file_str.substring(23)-->
+               local_file_str = local_file_str.split('base64,')[1]
+               console.log('local_file_str:', local_file_str);
+               showLoadingModal(); // 显示等待弹窗
+               // ===============  =================
+<!--                fetch('https://wolbukx4e6.execute-api.cn-northwest-1.amazonaws.com.cn/test/summary', {-->
+<!--                    method: 'POST',-->
+<!--                    // mode: 'no-cors',-->
+<!--                    headers: {"Content-Type": "application/json"},-->
+<!--                    body:  JSON.stringify({"file":local_file_str})-->
+<!--                })-->
+<!--                .then(response => response.json())-->
+<!--                .then(data => {-->
+<!--                    console.log('Success:', data);-->
+<!--                    hideLoadingModal(); // 隐藏等待弹窗-->
+<!--                    document.getElementById('summary').innerText = data.summary;-->
+<!--                })-->
+<!--                .catch(error => console.error('Error:', error));-->
+                // ===============  =================
+                // 配置AWS SDK
+                  AWS.config.region = 'cn-northwest-1'; // 替换为你的AWS区域
+                  // AK SK方式
+                  AWS.config.accessKeyId = 'AKIAT2FKDWKS6OEK3W6X'; // 替换为你的AWS访问密钥ID
+                  AWS.config.secretAccessKey = '3uq0LVFu0qYLXRZjc90p3NKDCAoOvAKmFfCcS+F/'; // 替换为你的AWS秘密访问密钥
+                  // 创建Lambda服务对象
+                  var lambda = new AWS.Lambda();
+                  // 构建调用参数
+                  var params = {
+<!--                    FunctionName: 'cscs-law-tag-generate', // 替换为你的Lambda函数名称-->
+                    FunctionName: 'langchain_summary',
+                    Payload: JSON.stringify({"file":local_file_str}),
+                    // InvocationType: 'RequestResponse',
+                    // LogType: 'None'
+                  };
+                  // 调用Lambda函数
+                  lambda.invoke(params, function(err, data) {
+                    if (err) {
+                      hideLoadingModal(); // 隐藏等待弹窗
+                      console.log(err, err.stack);
+                      document.getElementById("summary").innerText = "have some err!"
+                    } else {
+                      console.log('Success:', JSON.parse(data.Payload))
+                      document.getElementById("summary").innerText = JSON.parse(data.Payload).output_text;
+                      hideLoadingModal(); // 隐藏等待弹窗
+                    }
+                  });
+            };
+        }
+
+<!--        function callLambda(file) {-->
+<!--          // 配置AWS SDK-->
+<!--          AWS.config.region = 'cn-northwest-1'; // 替换为你的AWS区域-->
+<!--&lt;!&ndash;          // Cognito 方式&ndash;&gt;-->
+<!--&lt;!&ndash;          AWS.config.credentials = new AWS.CognitoIdentityCredentials({&ndash;&gt;-->
+<!--&lt;!&ndash;            IdentityPoolId: 'your-identity-pool-id' // 替换为你的身份池ID&ndash;&gt;-->
+<!--&lt;!&ndash;          });&ndash;&gt;-->
+<!--          // AK SK方式-->
+<!--          AWS.config.accessKeyId = 'AKIAT2FKDWKS6OEK3W6X'; // 替换为你的AWS访问密钥ID-->
+<!--          AWS.config.secretAccessKey = '3uq0LVFu0qYLXRZjc90p3NKDCAoOvAKmFfCcS+F/'; // 替换为你的AWS秘密访问密钥-->
+
+<!--          // 创建Lambda服务对象-->
+<!--          var lambda = new AWS.Lambda();-->
+
+<!--          // 构建调用参数-->
+<!--          var params = {-->
+<!--            FunctionName: 'cscs-law-tag-generate', // 替换为你的Lambda函数名称-->
+<!--            Payload: JSON.stringify({"file":file}),-->
+<!--            // InvocationType: 'RequestResponse',-->
+<!--            // LogType: 'None'-->
+<!--          };-->
+
+<!--          // 调用Lambda函数-->
+<!--          lambda.invoke(params, function(err, data) {-->
+<!--            if (err) {-->
+<!--              console.log(err, err.stack);-->
+<!--            } else {-->
+<!--              document.getElementById("summary_lambda").innerText = data.Payload;-->
+<!--            }-->
+<!--          });-->
+<!--        }-->
+    </script>
+</body>
+</html>
